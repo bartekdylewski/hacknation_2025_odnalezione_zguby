@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import CryptoJS from 'crypto-js';
@@ -11,6 +11,7 @@ import { Badge } from '../components/ui/badge';
 import { PackageCheck, Lock, CheckCircle, XCircle, Search, Info } from 'lucide-react';
 import { formatDateTime } from '../utils/database';
 import type { FoundItem } from '../utils/database';
+import { api } from '../api/client';
 
 export const WydawaniePage = () => {
   const { isAuthenticated } = useAuth();
@@ -21,6 +22,21 @@ export const WydawaniePage = () => {
   const [itemPesel, setItemPesel] = useState<{ [key: number]: string }>({});
   const [verifiedItemIds, setVerifiedItemIds] = useState<Set<number>>(new Set());
   const [selectedItem, setSelectedItem] = useState<FoundItem | null>(null);
+  const [items, setItems] = useState<FoundItem[]>([]);
+
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const data = await api.getItems();
+        setItems(data);
+      } catch (error) {
+        console.error('Failed to fetch items:', error);
+      }
+    };
+    if (isAuthenticated) {
+      fetchItems();
+    }
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -72,9 +88,8 @@ export const WydawaniePage = () => {
     const hash = CryptoJS.SHA256(pesel).toString();
     const personalCode = hash.substring(0, 8).toUpperCase();
 
-    const allItems: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]');
-    const matchingItems = allItems.filter(
-      (item) => item.status === 'znalezione' && item.person_id.toUpperCase() === personalCode
+    const matchingItems = items.filter(
+      (item) => item.status === 'znalezione' && item.person_id && item.person_id.toUpperCase() === personalCode
     );
 
     if (matchingItems.length === 0) {
@@ -121,7 +136,7 @@ export const WydawaniePage = () => {
     setItemPesel(newItemPesel);
   };
 
-  const handleIssueItem = (item: FoundItem) => {
+  const handleIssueItem = async (item: FoundItem) => {
     // Zabezpieczenie - przedmioty z kodem tylko jeśli zweryfikowane przez PESEL
     if (item.person_id && item.person_id.trim() && !verifiedItemIds.has(item.id)) {
       alert('⚠️ ZABEZPIECZENIE SYSTEMU\n\nTen przedmiot ma przypisany kod osobisty i nie został zweryfikowany przez PESEL.\n\nKliknij "Weryfikuj PESEL" i wprowadź numer PESEL z dowodu osoby odbierającej.');
@@ -132,30 +147,36 @@ export const WydawaniePage = () => {
       return;
     }
 
-    const items: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]');
-    const updatedItems = items.map((i) =>
-      i.id === item.id
-        ? { ...i, status: 'wydane' as const, date_modified: formatDateTime() }
-        : i
-    );
-    localStorage.setItem('foundItems', JSON.stringify(updatedItems));
-    
-    alert('Przedmiot został wydany i oznaczony jako "wydane" w bazie danych.');
-    
-    // Usuń z listy zweryfikowanych
-    const newVerifiedIds = new Set(verifiedItemIds);
-    newVerifiedIds.delete(item.id);
-    setVerifiedItemIds(newVerifiedIds);
-    
-    // Zamknij rozwinięty wiersz
-    setExpandedItemId(null);
-    
-    setPesel('');
-    setSearchQuery('');
+    try {
+      await api.updateItem(item.id, {
+        status: 'wydane',
+        date_modified: formatDateTime()
+      });
+      
+      // Odśwież listę
+      const updatedItems = await api.getItems();
+      setItems(updatedItems);
+
+      alert('Przedmiot został wydany i oznaczony jako "wydane" w bazie danych.');
+      
+      // Usuń z listy zweryfikowanych
+      const newVerifiedIds = new Set(verifiedItemIds);
+      newVerifiedIds.delete(item.id);
+      setVerifiedItemIds(newVerifiedIds);
+      
+      // Zamknij rozwinięty wiersz
+      setExpandedItemId(null);
+      
+      setPesel('');
+      setSearchQuery('');
+    } catch (error) {
+      console.error('Failed to issue item:', error);
+      alert('Wystąpił błąd podczas wydawania przedmiotu.');
+    }
   };
 
   // Filtrowanie przedmiotów - WSZYSTKIE przedmioty ze statusem "znalezione"
-  const allItems: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]').filter(
+  const allItems = items.filter(
     (item: FoundItem) => item.status === 'znalezione'
   );
 
@@ -164,7 +185,7 @@ export const WydawaniePage = () => {
         const query = searchQuery.toLowerCase();
         return (
           item.id.toString().includes(query) ||
-          item.person_id.toLowerCase().includes(query) ||
+          (item.person_id && item.person_id.toLowerCase().includes(query)) ||
           item.title.toLowerCase().includes(query) ||
           item.description.toLowerCase().includes(query) ||
           item.found_at.toLowerCase().includes(query)

@@ -16,7 +16,7 @@ console.log('\n=== FOUND ITEMS ===');
 const items = db.prepare('SELECT * FROM found_items').all();
 console.log('Total items:', items.length);
 items.forEach(item => {
-  console.log(`- [${item.status}] ${item.category}: ${item.description.substring(0, 50)}...`);
+  console.log(`- [${item.status}] ${item.title}: ${item.description.substring(0, 50)}...`);
 });
 
 db.close();

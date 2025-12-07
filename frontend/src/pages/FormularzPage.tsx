@@ -6,8 +6,7 @@ import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { PackagePlus, CheckCircle } from 'lucide-react';
-import { formatDateTime, generateId } from '../utils/database';
-import type { FoundItem } from '../utils/database';
+import { api } from '../api/client';
 
 export const FormularzPage = () => {
   const [personId, setPersonId] = useState('');
@@ -15,38 +14,35 @@ export const FormularzPage = () => {
   const [description, setDescription] = useState('');
   const [foundAt, setFoundAt] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
-    const now = new Date();
-    const dateTimeString = formatDateTime(now);
+    try {
+      await api.addItem({
+        person_id: personId.trim().toUpperCase() || '',
+        title: title.trim(),
+        description: description.trim(),
+        found_at: foundAt.trim(),
+        status: 'znalezione',
+      });
 
-    const newItem: FoundItem = {
-      id: generateId(),
-      person_id: personId.trim().toUpperCase() || '',
-      title: title.trim(),
-      description: description.trim(),
-      found_at: foundAt.trim(),
-      date_added: dateTimeString,
-      date_modified: dateTimeString,
-      status: 'znalezione',
-    };
+      setSubmitted(true);
 
-    const items: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]');
-    items.push(newItem);
-    localStorage.setItem('foundItems', JSON.stringify(items));
-
-    setSubmitted(true);
-
-    // Reset formularza po 2 sekundach
-    setTimeout(() => {
-      setSubmitted(false);
-      setPersonId('');
-      setTitle('');
-      setDescription('');
-      setFoundAt('');
-    }, 2000);
+      // Reset formularza po 2 sekundach
+      setTimeout(() => {
+        setSubmitted(false);
+        setPersonId('');
+        setTitle('');
+        setDescription('');
+        setFoundAt('');
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+      setError('Wystąpił błąd podczas dodawania przedmiotu.');
+    }
   };
 
   if (submitted) {
@@ -75,6 +71,12 @@ export const FormularzPage = () => {
           Wprowadź informacje o znalezionym przedmiocie do systemu
         </p>
       </div>
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -14,12 +14,24 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import type { FoundItem } from '../utils/database';
+import { api } from '../api/client';
 
 export const DaneGovPage = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [items, setItems] = useState<FoundItem[]>([]);
 
-  const items: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]');
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const data = await api.getItems();
+        setItems(data);
+      } catch (error) {
+        console.error('Failed to fetch items:', error);
+      }
+    };
+    fetchItems();
+  }, []);
 
   const columns: ColumnDef<FoundItem>[] = useMemo(
     () => [

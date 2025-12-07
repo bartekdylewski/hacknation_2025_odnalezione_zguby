@@ -20,19 +20,13 @@ export const formatDateTime = (date: Date = new Date()): string => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
-// Funkcja do generowania unikalnego ID
+// Funkcja do generowania unikalnego ID - teraz obsługiwane przez backend
 export const generateId = (): number => {
-  const items: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]');
-  if (items.length === 0) return 1;
-  const maxId = Math.max(...items.map(item => item.id));
-  return maxId + 1;
+  return 0; // Placeholder
 };
 
 export const initializeDatabase = () => {
-  // Inicjalizacja pustej listy jeśli nie istnieje
-  if (!localStorage.getItem('foundItems')) {
-    localStorage.setItem('foundItems', '[]');
-  }
+  // Teraz obsługiwane przez backend
 };
 
 export const sendEmail = (to: string, subject: string, body: string) => {
