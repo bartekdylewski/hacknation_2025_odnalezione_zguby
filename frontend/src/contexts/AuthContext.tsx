@@ -1,16 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../api/client';
 
 interface User {
   username: string;
-  password: string;
-  email: string;
+  name: string;
 }
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  register: (username: string, password: string, email: string) => boolean;
+  register: (username: string, password: string, name: string) => Promise<boolean>;
   isAuthenticated: boolean;
 }
 
@@ -34,29 +34,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const register = (username: string, password: string, email: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    if (users.find((u: User) => u.username === username)) {
-      return false;
-    }
-
-    const newUser = { username, password, email };
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    return true;
-  };
-
-  const login = (username: string, password: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: User) => u.username === username && u.password === password);
-    
-    if (user) {
+  const register = async (username: string, password: string, name: string): Promise<boolean> => {
+    try {
+      const user = await api.register(username, password, name);
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
       return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      return false;
     }
-    return false;
+  };
+
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const user = await api.login(username, password);
+      setCurrentUser(user);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
   const logout = () => {

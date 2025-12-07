@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import { PackageCheck, Lock, Scan, CheckCircle, XCircle, Search } from 'lucide-react';
+import { api } from '../api/client';
 
 interface FoundItem {
   id: string;
@@ -73,7 +74,7 @@ export const WydawaniePage = () => {
     return checksum === parseInt(pesel[10]);
   };
 
-  const handleVerification = () => {
+  const handleVerification = async () => {
     setVerificationResult(null);
     setSearchPerformed(false);
 
@@ -90,43 +91,47 @@ export const WydawaniePage = () => {
     const hash = CryptoJS.SHA256(pesel).toString();
     const personalCode = hash.substring(0, 8).toUpperCase();
 
-    const allItems: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]');
-    const matchingItems = allItems.filter(
-      (item) => item.personalCode.toUpperCase() === personalCode
-    );
+    try {
+      const allItems = await api.getActiveItems();
+      const matchingItems = allItems
+        .map((item: any) => ({
+          id: item.id,
+          category: item.category,
+          description: item.description,
+          location: item.location,
+          date: item.date,
+          personalCode: item.personal_code,
+          submittedBy: item.submitted_by,
+          submittedAt: item.submitted_at,
+        }))
+        .filter((item: FoundItem) => item.personalCode.toUpperCase() === personalCode);
 
-    setVerificationResult({
-      success: true,
-      personalCode,
-      matchingItems,
-    });
+      setVerificationResult({
+        success: true,
+        personalCode,
+        matchingItems,
+      });
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      alert('Błąd podczas pobierania danych');
+    }
     setSearchPerformed(true);
   };
 
-  const handleIssueItem = (itemId: string) => {
-    const items: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]');
-    const issuedItem = items.find((item) => item.id === itemId);
-    
-    if (issuedItem) {
-      // Dodaj do historii wydanych
-      const issuedItems = JSON.parse(localStorage.getItem('issuedItems') || '[]');
-      issuedItems.push({
-        ...issuedItem,
-        issuedAt: new Date().toISOString(),
-      });
-      localStorage.setItem('issuedItems', JSON.stringify(issuedItems));
-    }
-    
-    // Usuń z aktywnych
-    const updatedItems = items.filter((item) => item.id !== itemId);
-    localStorage.setItem('foundItems', JSON.stringify(updatedItems));
-    
-    if (verificationResult) {
-      const updatedMatching = verificationResult.matchingItems.filter((item) => item.id !== itemId);
-      setVerificationResult({
-        ...verificationResult,
-        matchingItems: updatedMatching,
-      });
+  const handleIssueItem = async (itemId: string) => {
+    try {
+      await api.issueItem(itemId, new Date().toISOString());
+      
+      if (verificationResult) {
+        const updatedMatching = verificationResult.matchingItems.filter((item) => item.id !== itemId);
+        setVerificationResult({
+          ...verificationResult,
+          matchingItems: updatedMatching,
+        });
+      }
+    } catch (error) {
+      console.error('Error issuing item:', error);
+      alert('Błąd podczas wydawania przedmiotu');
     }
   };
 

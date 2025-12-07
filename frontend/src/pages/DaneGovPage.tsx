@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -7,6 +7,7 @@ import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Download, FileText, Search, Eye, Calendar, MapPin } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { api } from '../api/client';
 
 interface FoundItem {
   id: string;
@@ -24,17 +25,33 @@ interface FoundItem {
 export const DaneGovPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCsvPreview, setShowCsvPreview] = useState(false);
+  const [allItems, setAllItems] = useState<FoundItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const allItems: FoundItem[] = useMemo(() => {
-    const activeItems = JSON.parse(localStorage.getItem('foundItems') || '[]').map((item: FoundItem) => ({
-      ...item,
-      status: 'active' as const,
-    }));
-    const issuedItems = JSON.parse(localStorage.getItem('issuedItems') || '[]').map((item: FoundItem) => ({
-      ...item,
-      status: 'issued' as const,
-    }));
-    return [...activeItems, ...issuedItems];
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const items = await api.getItems();
+        const mappedItems = items.map((item: any) => ({
+          id: item.id,
+          category: item.category,
+          description: item.description,
+          location: item.location,
+          date: item.date,
+          personalCode: item.personal_code,
+          submittedBy: item.submitted_by,
+          submittedAt: item.submitted_at,
+          status: item.status,
+          issuedAt: item.issued_at,
+        }));
+        setAllItems(mappedItems);
+      } catch (error) {
+        console.error('Error fetching items:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchItems();
   }, []);
 
   const filteredItems = useMemo(() => {

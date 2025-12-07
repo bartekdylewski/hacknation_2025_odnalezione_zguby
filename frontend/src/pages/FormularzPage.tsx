@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { FileText, Lock } from 'lucide-react';
+import { api } from '../api/client';
 
 interface FoundItem {
   id: string;
@@ -58,7 +59,7 @@ export const FormularzPage = () => {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const newItem: FoundItem = {
@@ -68,20 +69,21 @@ export const FormularzPage = () => {
       submittedAt: new Date().toISOString(),
     };
 
-    const items = JSON.parse(localStorage.getItem('foundItems') || '[]');
-    items.push(newItem);
-    localStorage.setItem('foundItems', JSON.stringify(items));
-
-    setSuccess(true);
-    setFormData({
-      category: '',
-      description: '',
-      location: '',
-      date: '',
-      personalCode: '',
-    });
-
-    setTimeout(() => setSuccess(false), 5000);
+    try {
+      await api.addItem(newItem);
+      setSuccess(true);
+      setFormData({
+        category: '',
+        description: '',
+        location: '',
+        date: '',
+        personalCode: '',
+      });
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (error) {
+      console.error('Error adding item:', error);
+      alert('Błąd podczas zapisywania przedmiotu');
+    }
   };
 
   return (
