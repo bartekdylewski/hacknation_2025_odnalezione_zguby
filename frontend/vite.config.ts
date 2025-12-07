@@ -3,8 +3,15 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
-  export default defineConfig({
-    plugins: [react()],
+  const REPO_NAME = 'hacknation_2025_odnalezione_zguby';
+  
+export default defineConfig(({ mode }) => {
+  const isGitHubPages = mode === 'production';
+
+  return {
+    // Jeśli isGitHubPages jest true, używamy /REPO_NAME/, w przeciwnym razie używamy /
+    base: isGitHubPages ? `/${REPO_NAME}/` : '/',
+  plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
@@ -57,4 +64,4 @@
       port: 3000,
       open: true,
     },
-  });
+  }});

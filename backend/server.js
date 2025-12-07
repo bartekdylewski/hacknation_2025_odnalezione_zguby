@@ -186,21 +186,6 @@ app.put('/api/items/:id', (req, res) => {
   }
 });
 
-// Usuń przedmiot
-app.delete('/api/items/:id', (req, res) => {
-  const { id } = req.params;
-  try {
-    const stmt = db.prepare('DELETE FROM found_items WHERE id = ?');
-    const info = stmt.run(id);
-    if (info.changes === 0) {
-      return res.status(404).json({ error: 'Przedmiot nie istnieje' });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Reset bazy danych (dla celów deweloperskich/demo)
 app.post('/api/reset', async (req, res) => {
   try {
