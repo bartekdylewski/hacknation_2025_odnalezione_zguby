@@ -66,6 +66,14 @@ export const api = {
     });
     if (!response.ok) throw new Error('Błąd resetowania bazy');
     return response.json();
+  },
+
+  async deleteItem(id: number | string) {
+    const response = await fetch(`${API_URL}/items/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Błąd usuwania przedmiotu');
+    return response.json();
   }
 };
 

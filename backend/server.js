@@ -186,6 +186,21 @@ app.put('/api/items/:id', (req, res) => {
   }
 });
 
+// Usuń przedmiot
+app.delete('/api/items/:id', (req, res) => {
+  const { id } = req.params;
+  try {
+    const stmt = db.prepare('DELETE FROM found_items WHERE id = ?');
+    const info = stmt.run(id);
+    if (info.changes === 0) {
+      return res.status(404).json({ error: 'Przedmiot nie istnieje' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Reset bazy danych (dla celów deweloperskich/demo)
 app.post('/api/reset', async (req, res) => {
   try {
@@ -214,106 +229,34 @@ app.post('/api/reset', async (req, res) => {
 });
 
 
-// Zarejestruj użytkownika
-app.post('/api/users/register', (req, res) => {
+// Pobierz dane w formacie CSV
+app.get('/api/get-csv', (req, res) => {
   try {
-    const { username, password, name } = req.body;
-    const stmt = db.prepare('INSERT INTO users (username, password, name) VALUES (?, ?, ?)');
-    const result = stmt.run(username, password, name);
-    res.json({ id: result.lastInsertRowid, username, name });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Logowanie użytkownika
-app.post('/api/users/login', (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const user = db.prepare('SELECT id, username, name FROM users WHERE username = ? AND password = ?')
-      .get(username, password);
+    const items = db.prepare('SELECT * FROM found_items').all();
     
-    if (user) {
-      res.json(user);
-    } else {
-      res.status(401).json({ error: 'Nieprawidłowe dane logowania' });
+    // Nagłówki CSV
+    const headers = ['id', 'person_id', 'title', 'description', 'found_at', 'date_added', 'date_modified', 'status'];
+    
+    // Generowanie treści CSV
+    const csvRows = [headers.join(',')];
+    
+    for (const item of items) {
+      const row = headers.map(header => {
+        const val = item[header] || '';
+        // Escaping quotes and wrapping in quotes if necessary
+        const stringVal = String(val).replace(/"/g, '""');
+        return `"${stringVal}"`;
+      });
+      csvRows.push(row.join(','));
     }
+    
+    const csvString = csvRows.join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="items.csv"');
+    res.send(csvString);
   } catch (error) {
     res.status(500).json({ error: error.message });
-  }
-});
-
-// ========== FOUND ITEMS API ==========
-
-// Pobierz wszystkie znalezione rzeczy
-app.get('/api/items', (req, res) => {
-  try {
-    const items = db.prepare('SELECT * FROM found_items ORDER BY submitted_at DESC').all();
-    res.json(items);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Pobierz aktywne rzeczy
-app.get('/api/items/active', (req, res) => {
-  try {
-    const items = db.prepare('SELECT * FROM found_items WHERE status = ? ORDER BY submitted_at DESC')
-      .all('active');
-    res.json(items);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Pobierz wydane rzeczy
-app.get('/api/items/issued', (req, res) => {
-  try {
-    const items = db.prepare('SELECT * FROM found_items WHERE status = ? ORDER BY issued_at DESC')
-      .all('issued');
-    res.json(items);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Dodaj nową znalezioną rzecz
-app.post('/api/items', (req, res) => {
-  try {
-    const { id, category, description, location, date, personal_code, submitted_by, submitted_at } = req.body;
-    const stmt = db.prepare(`
-      INSERT INTO found_items (id, category, description, location, date, personal_code, submitted_by, submitted_at, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
-    `);
-    stmt.run(id, category, description, location, date, personal_code, submitted_by, submitted_at);
-    res.json({ success: true, id });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Wydaj rzecz
-app.patch('/api/items/:id/issue', (req, res) => {
-  try {
-    const { id } = req.params;
-    const { issued_at } = req.body;
-    const stmt = db.prepare('UPDATE found_items SET status = ?, issued_at = ? WHERE id = ?');
-    stmt.run('issued', issued_at, id);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Usuń rzecz
-app.delete('/api/items/:id', (req, res) => {
-  try {
-    const { id } = req.params;
-    const stmt = db.prepare('DELETE FROM found_items WHERE id = ?');
-    stmt.run(id);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
   }
 });
 

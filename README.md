@@ -53,6 +53,13 @@ kill [PID]
 
 ## API Endpoints
 
+### Download csv 
+
+```bash
+wget http://localhost:3001/api/get-csv -O dane_gov_pl_zguby.csv
+curl http://localhost:3001/api/get-csv -o dane_gov_pl_zguby.csv
+```
+
 ### Users
 - `POST /api/users/register` - Rejestracja
 - `POST /api/users/login` - Logowanie
