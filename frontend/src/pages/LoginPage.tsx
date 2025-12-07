@@ -18,19 +18,18 @@ export const LoginPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    const success = await login(loginData.username, loginData.password);
-    if (success) {
+    if (login(loginData.username, loginData.password)) {
       navigate('/');
     } else {
       setError('Nieprawidłowa nazwa użytkownika lub hasło');
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -45,8 +44,7 @@ export const LoginPage = () => {
       return;
     }
 
-    const success = await register(registerData.username, registerData.password, registerData.email);
-    if (success) {
+    if (register(registerData.username, registerData.password, registerData.email)) {
       setSuccess('Konto zostało utworzone pomyślnie. Możesz się teraz zalogować.');
       setRegisterData({ username: '', password: '', email: '', confirmPassword: '' });
     } else {

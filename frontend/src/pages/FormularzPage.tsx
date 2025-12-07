@@ -1,183 +1,190 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { FileText, Lock } from 'lucide-react';
-import { api } from '../api/client';
-
-interface FoundItem {
-  id: string;
-  category: string;
-  description: string;
-  location: string;
-  date: string;
-  personalCode: string;
-  submittedBy: string;
-  submittedAt: string;
-}
+import { PackagePlus, CheckCircle } from 'lucide-react';
+import { formatDateTime, generateId } from '../utils/database';
+import type { FoundItem } from '../utils/database';
 
 export const FormularzPage = () => {
-  const { isAuthenticated, currentUser } = useAuth();
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    category: '',
-    description: '',
-    location: '',
-    date: '',
-    personalCode: '',
-  });
-  const [success, setSuccess] = useState(false);
+  const [personId, setPersonId] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [foundAt, setFoundAt] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
-  if (!isAuthenticated) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const now = new Date();
+    const dateTimeString = formatDateTime(now);
+
+    const newItem: FoundItem = {
+      id: generateId(),
+      person_id: personId.trim().toUpperCase() || '',
+      title: title.trim(),
+      description: description.trim(),
+      found_at: foundAt.trim(),
+      date_added: dateTimeString,
+      date_modified: dateTimeString,
+      status: 'znalezione',
+    };
+
+    const items: FoundItem[] = JSON.parse(localStorage.getItem('foundItems') || '[]');
+    items.push(newItem);
+    localStorage.setItem('foundItems', JSON.stringify(items));
+
+    setSubmitted(true);
+
+    // Reset formularza po 2 sekundach
+    setTimeout(() => {
+      setSubmitted(false);
+      setPersonId('');
+      setTitle('');
+      setDescription('');
+      setFoundAt('');
+    }, 2000);
+  };
+
+  if (submitted) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12">
-        <Card>
+        <Card className="bg-green-50 border-green-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lock className="w-5 h-5 text-amber-600" aria-hidden="true" />
-              Wymagane logowanie
+            <CardTitle className="flex items-center gap-2 text-green-800">
+              <CheckCircle className="w-6 h-6" aria-hidden="true" />
+              Przedmiot został dodany do systemu
             </CardTitle>
-            <CardDescription>
-              Dostęp do formularza zgłoszenia jest ograniczony tylko dla upoważnionych osób
+            <CardDescription className="text-green-700">
+              Za chwilę formularz zostanie zresetowany...
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-gray-600">
-              Aby zgłosić znaleziony przedmiot, musisz się najpierw zalogować do systemu.
-            </p>
-            <Button onClick={() => navigate('/login')} aria-label="Przejdź do strony logowania">
-              Przejdź do logowania
-            </Button>
-          </CardContent>
         </Card>
       </div>
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const newItem: FoundItem = {
-      id: Date.now().toString(),
-      ...formData,
-      submittedBy: currentUser?.username || '',
-      submittedAt: new Date().toISOString(),
-    };
-
-    try {
-      await api.addItem(newItem);
-      setSuccess(true);
-      setFormData({
-        category: '',
-        description: '',
-        location: '',
-        date: '',
-        personalCode: '',
-      });
-      setTimeout(() => setSuccess(false), 5000);
-    } catch (error) {
-      console.error('Error adding item:', error);
-      alert('Błąd podczas zapisywania przedmiotu');
-    }
-  };
-
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="mb-6">
+        <h2 className="text-blue-700 mb-2">Dodaj Znaleziony Przedmiot</h2>
+        <p className="text-gray-600">
+          Wprowadź informacje o znalezionym przedmiocie do systemu
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600" aria-hidden="true" />
-            Formularz Zgłoszenia Znalezionej Rzeczy
+            <PackagePlus className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            Formularz zgłoszenia
           </CardTitle>
           <CardDescription>
-            Wypełnij poniższy formularz, aby zgłosić znaleziony przedmiot
+            Wszystkie pola oprócz kodu osobistego są wymagane
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            <Alert>
+              <AlertDescription>
+                <strong>Kod osobisty (opcjonalny):</strong> Jeśli do przedmiotu dołączony jest brelok z kodem osobistym, wprowadź go poniżej. W przeciwnym razie pozostaw pole puste.
+              </AlertDescription>
+            </Alert>
+
             <div>
-              <Label htmlFor="category">Kategoria przedmiotu</Label>
+              <Label htmlFor="person-id">
+                Kod osobisty z breloka (opcjonalny)
+              </Label>
               <Input
-                id="category"
+                id="person-id"
                 type="text"
-                placeholder="np. Portfel, Telefon, Klucze"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                required
-                aria-required="true"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Szczegółowy opis</Label>
-              <Textarea
-                id="description"
-                placeholder="Opisz znaleziony przedmiot (kolor, marka, charakterystyczne cechy)"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
-                required
-                aria-required="true"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="location">Miejsce znalezienia</Label>
-              <Input
-                id="location"
-                type="text"
-                placeholder="np. Park Centralny, ul. Główna 15"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                required
-                aria-required="true"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="date">Data znalezienia</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                required
-                aria-required="true"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="personalCode">Kod osobisty (jeśli znany)</Label>
-              <Input
-                id="personalCode"
-                type="text"
-                placeholder="8-znakowy kod osobisty właściciela"
-                value={formData.personalCode}
-                onChange={(e) => setFormData({ ...formData, personalCode: e.target.value.slice(0, 8) })}
+                placeholder="np. 2G4JD92J"
+                value={personId}
+                onChange={(e) => setPersonId(e.target.value.toUpperCase())}
                 maxLength={8}
+                aria-describedby="person-id-help"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Jeśli znaleziony przedmiot zawiera informacje umożliwiające wygenerowanie kodu osobistego
+              <p id="person-id-help" className="text-xs text-gray-500 mt-1">
+                Pozostaw puste jeśli przedmiot nie ma przypisanego kodu (max 8 znaków)
               </p>
             </div>
 
-            {success && (
-              <Alert>
-                <AlertDescription>
-                  Zgłoszenie zostało pomyślnie zapisane w systemie!
-                </AlertDescription>
-              </Alert>
-            )}
+            <div>
+              <Label htmlFor="title">
+                Nazwa przedmiotu *
+              </Label>
+              <Input
+                id="title"
+                type="text"
+                placeholder="np. Laptop Dell"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                aria-required="true"
+              />
+            </div>
 
-            <Button type="submit" className="w-full" aria-label="Wyślij zgłoszenie znalezionego przedmiotu">
-              Zgłoś znaleziony przedmiot
+            <div>
+              <Label htmlFor="description">
+                Szczegółowy opis *
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="np. Srebrny laptop Dell Latitude 5300"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+                rows={4}
+                aria-required="true"
+                aria-describedby="description-help"
+              />
+              <p id="description-help" className="text-xs text-gray-500 mt-1">
+                Im więcej szczegółów, tym łatwiej będzie zidentyfikować właściciela
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="found-at">
+                Miejsce znalezienia *
+              </Label>
+              <Input
+                id="found-at"
+                type="text"
+                placeholder="np. Starostwo Powiatowe w Bydgoszczy, Polska"
+                value={foundAt}
+                onChange={(e) => setFoundAt(e.target.value)}
+                required
+                aria-required="true"
+              />
+            </div>
+
+            <Alert>
+              <AlertDescription>
+                Data i godzina dodania przedmiotu zostaną automatycznie zapisane w systemie.
+              </AlertDescription>
+            </Alert>
+
+            <Button type="submit" className="w-full" size="lg">
+              <PackagePlus className="w-4 h-4 mr-2" aria-hidden="true" />
+              Dodaj przedmiot do systemu
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 bg-gray-50">
+        <CardHeader>
+          <CardTitle className="text-base">Instrukcja dodawania przedmiotów</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-gray-700 space-y-2">
+          <p>1. Sprawdź czy do przedmiotu dołączony jest brelok z kodem osobistym</p>
+          <p>2. Wprowadź kod (jeśli istnieje) lub pozostaw pole puste</p>
+          <p>3. Podaj nazwę i szczegółowy opis znalezionego przedmiotu</p>
+          <p>4. Wskaż dokładne miejsce znalezienia</p>
+          <p>5. Kliknij &quot;Dodaj przedmiot do systemu&quot;</p>
         </CardContent>
       </Card>
     </div>
