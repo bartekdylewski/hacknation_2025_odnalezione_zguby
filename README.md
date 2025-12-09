@@ -2,6 +2,9 @@
 
 System do zarządzania znalezionymi rzeczami z backendem (Node.js + Express + SQLite) i frontendem (React + Vite).
 
+Live demo hosted at figma (only localstorage, you can create account and play around)
+https://pale-floor-13699014.figma.site/
+
 ## Struktura projektu
 
 ```
