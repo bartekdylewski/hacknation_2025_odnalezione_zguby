@@ -1,91 +1,30 @@
-# Odnalezione zguby - znalezione.gov.pl
+# Odnalezione Zguby
 
-System do zarządzania znalezionymi rzeczami z backendem (Node.js + Express + SQLite) i frontendem (React + Vite).
+Koncepcja ogólnopolskiego systemu znalezionych rzeczy, zintegrowanego z [dane.gov.pl](dane.gov.pl). Projekt powstał na **HackNation 2025**.<br>
+[Demo](https://pale-floor-13699014.figma.site/) (działa w przeglądarce na localStorage, można założyć konto i wszystko przetestować)
 
-Live demo hosted at figma (only localstorage, you can create account and play around)
-https://pale-floor-13699014.figma.site/
+<img width="2253" height="1311" alt="Odnalezione Zguby - ekran główny" src="https://github.com/user-attachments/assets/d0425ea9-ffc8-45fb-9ece-4b45293f3e04" />
 
-## Struktura projektu
+## O projekcie
 
-```
-.
-├── backend/          # Backend API (Node.js + Express + SQLite)
-└── frontend/         # Frontend aplikacja (React + Vite)
-```
-
-## Instalacja i uruchomienie
-
-### Szybki start (oba serwery)
-
-#### Backend
-```bash
-./start-backend.sh
-# lub manualnie:
-cd backend
-npm install
-node server.js
-```
-
-Backend będzie dostępny na: `http://localhost:3001`
-
-#### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend będzie dostępny na: `http://localhost:3000`
-
-#### Zatrzymanie backendu
-```bash
-# Znajdź PID procesu
-ps aux | grep "node server.js"
-
-# Zatrzymaj proces
-kill [PID]
-```
+Informacje o znalezionych rzeczach są dziś rozproszone, a osoba, która coś zgubiła, ma trudność z ustaleniem, gdzie i u kogo tego szukać. Projekt pokazuje, jak mógłby wyglądać jeden spójny system, który obsługuje cały proces: przyjęcie rzeczy, weryfikację właściciela i jej wydanie. Dane o rzeczach są udostępniane jako otwarte dane w standardzie dane.gov.pl.
 
 ## Funkcje
 
-- 📝 **Zgłaszanie znalezionych rzeczy** - formularz do dodawania przedmiotów
-- 🔍 **Weryfikacja PESEL** - system wydawania rzeczy z weryfikacją
-- 📊 **Dane.gov.pl export** - eksport danych do CSV zgodny ze standardem
-- 👥 **System użytkowników** - rejestracja i logowanie
-- 💾 **Trwałe przechowywanie** - baza SQLite zamiast localStorage
+- Zgłaszanie znalezionych rzeczy przez formularz
+- Wydawanie rzeczy po weryfikacji numeru PESEL
+- Eksport danych do CSV zgodnego ze standardem dane.gov.pl
+- Rejestracja i logowanie użytkowników
+- Trwałe przechowywanie danych w bazie SQLite
 
-## API Endpoints
+## Hackathon
 
-### Download csv 
+HackNation 2025<br>
+[Bartek Dylewski](https://github.com/bartekdylewski) & [Julia Majdańska](https://github.com/juls-s05)<br>
 
-```bash
-wget http://localhost:3001/api/get-csv -O dane_gov_pl_zguby.csv
-curl http://localhost:3001/api/get-csv -o dane_gov_pl_zguby.csv
+## Struktura i technologie
+
 ```
-
-### Users
-- `POST /api/users/register` - Rejestracja
-- `POST /api/users/login` - Logowanie
-- `GET /api/users` - Lista użytkowników
-
-### Items
-- `GET /api/items` - Wszystkie przedmioty
-- `GET /api/items/active` - Aktywne przedmioty
-- `GET /api/items/issued` - Wydane przedmioty
-- `POST /api/items` - Dodaj przedmiot
-- `PATCH /api/items/:id/issue` - Wydaj przedmiot
-
-## Technologie
-
-**Backend:**
-- Node.js
-- Express.js
-- better-sqlite3
-- CORS
-
-**Frontend:**
-- React 18
-- Vite
-- React Router
-- Radix UI
-- Tailwind CSS (w Vite)
+backend/    API: Node.js, Express, SQLite (better-sqlite3)
+frontend/   Interfejs: React 18, Vite, React Router, Radix UI, Tailwind CSS
+```
